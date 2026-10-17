@@ -1,0 +1,43 @@
+<script setup lang="uts">
+import {parseMarkdown,inlineMarkdown} from '../common/markdown.uts'
+import MarkdownText from './MarkdownText.uvue'
+const props=defineProps<{content:string,user:boolean}>()
+const blocks=computed(()=>parseMarkdown(props.content))
+function codeWidth(text:string):number {
+ let longest=0
+ for(const line of text.split('\n'))longest=Math.max(longest,line.replace(/\t/g,'    ').length)
+ return longest*8+24
+}
+</script>
+<template>
+<view class="message-content" :class="user?'user-content':''">
+  <view v-for="(item,i) in blocks" :key="i" class="block" :class="[item.kind,i==0?'first-block':'']">
+   <scroll-view v-if="item.kind=='code'" scroll-x class="code-scroll"><view class="code-body" :style="{minWidth:codeWidth(item.text)+'px'}"><text v-if="item.marker.length>0" class="code-language">{{item.marker}}</text><text v-for="(line,l) in item.text.split('\n')" :key="l" class="code-text" :user-select="true">{{line.length>0?line.replace(/\t/g,'    ').replace(/ /g,'\u00a0'):'\u00a0'}}</text></view></scroll-view>
+   <scroll-view v-else-if="item.kind=='table'" scroll-x class="table-scroll"><view class="table-body"><view v-for="(row,r) in item.rows" :key="r" class="table-row" :class="r==0?'table-heading':''"><view v-for="(cell,c) in row" :key="c" class="table-cell"><MarkdownText :runs="inlineMarkdown(cell)"/></view></view></view></scroll-view>
+   <view v-else-if="item.kind=='rule'" class="divider"/>
+   <view v-else-if="item.kind=='list'" class="list-row" :style="{paddingLeft:item.indent*6+'px'}"><text class="list-marker">{{item.marker}}</text><MarkdownText class="list-content" :runs="item.runs"/></view>
+   <MarkdownText v-else-if="item.kind=='heading'" :runs="item.runs" :heading="true"/>
+   <MarkdownText v-else :runs="item.runs"/>
+  </view>
+</view>
+</template>
+<style>
+.message-content { min-width:0; }
+.block { margin-top:8px; }
+.first-block { margin-top:0; }
+.heading { margin-top:12px; }
+.list { margin-top:3px; }
+.list-row { flex-direction:row; align-items:flex-start; }
+.list-marker { width:25px; flex-shrink:0; color:#384231; font-size:15px; line-height:25px; }
+.list-content { flex:1; min-width:0; }
+.quote { border-left-width:3px; border-left-color:#9DB48B; padding:2px 10px; background-color:#F2F2EA; }
+.code-scroll { background-color:#EEF1E7; border-radius:9px; }
+.code-body { padding:10px 12px; align-items:flex-start; }
+.code-language { color:#7A896D; font-size:11px; line-height:16px; margin-bottom:4px; }
+.code-text { color:#384231; font-family:monospace; font-size:13px; line-height:21px; white-space:nowrap; }
+.table-body { align-self:flex-start; }
+.table-row { flex-direction:row; }
+.table-heading { background-color:#EEF1E7; }
+.table-cell { width:140px; padding:7px 9px; border-width:1px; border-color:#DCE2D2; }
+.divider { height:1px; background-color:#DCE2D2; margin:4px 0; }
+</style>

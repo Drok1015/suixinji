@@ -1,0 +1,51 @@
+import { API_BASE, headers } from './api.uts'
+export type StreamHandlers = { onEvent: (kind:string, data:UTSJSONObject)=>void, onError:(error:string)=>void, onClose:()=>void }
+// Decode complete SSE frames only, so UTF-8 characters split across network chunks remain intact.
+export function streamChat(cid:string, body:UTSJSONObject, handlers:StreamHandlers):RequestTask {
+ let pending=new Uint8Array(0)
+ let finished=false
+ const decodeUtf8=(bytes:Uint8Array):string=>{
+  let encoded=''
+  for(let i=0;i<bytes.length;i++) encoded+='%' + bytes[i].toString(16).padStart(2,'0')
+  return decodeURIComponent(encoded)
+ }
+ const parse=(text:string)=>{
+  for(const frame of text.split('\n\n')) {
+   let kind='';let payload=''
+   for(const line of frame.split('\n')) {
+    if(line.startsWith('event: ')) kind=line.substring(7).trim()
+    if(line.startsWith('data: ')) payload+=line.substring(6)
+   }
+   if(payload.length==0) continue
+   try {
+    const data=JSON.parse(payload) as UTSJSONObject
+    handlers.onEvent(kind,data)
+    if(kind=='done' || kind=='stopped' || kind=='error') finished=true
+   } catch (_) {finished=true;handlers.onError('回复数据解析失败，可以重试')}
+  }
+ }
+ const consume=(bytes:Uint8Array)=>{
+  const merged=new Uint8Array(pending.length+bytes.length)
+  for(let i=0;i<pending.length;i++) merged[i]=pending[i]
+  for(let i=0;i<bytes.length;i++) merged[pending.length+i]=bytes[i]
+  let cut=0
+  for(let i=0;i<merged.length-1;i++) {if(merged[i]==10 && merged[i+1]==10) cut=i+2}
+  if(cut>0) {
+   const whole=new Uint8Array(cut)
+   for(let i=0;i<cut;i++) whole[i]=merged[i]
+   parse(decodeUtf8(whole))
+  }
+  pending=new Uint8Array(merged.length-cut)
+  for(let i=cut;i<merged.length;i++) pending[i-cut]=merged[i]
+ }
+ const task=uni.request({url:API_BASE+'/conversations/'+cid+'/chat',method:'POST',header:headers(),data:body,enableChunked:true,responseType:'arraybuffer',timeout:180000,
+  success:(res)=>{
+   if(res.statusCode==401) {uni.removeStorageSync('self-agent-token');uni.reLaunch({url:'/pages/login/index'})}
+   if(res.statusCode!=200) {finished=true;handlers.onError(res.statusCode==401?'登录已过期，请重新登录':'发送失败，请稍后重试')}
+   if(!finished) handlers.onError('连接已中断，可以重试回复')
+   handlers.onClose()
+  },fail:(_)=>{if(!finished) handlers.onError('连接中断，可以重试回复');handlers.onClose()}
+ })
+ task.onChunkReceived((res:RequestTaskOnChunkReceivedListenerResult)=>consume(new Uint8Array(res.data)))
+ return task
+}

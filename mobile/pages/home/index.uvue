@@ -1,0 +1,36 @@
+<script setup lang="uts">
+import { request, report, requireLogin, confirmDelete } from '../../common/api.uts'
+import type { Conversation, Ok } from '../../common/types.uts'
+const conversations = ref<Conversation[]>([])
+const loading=ref(false)
+function load() {if (!requireLogin()) return; loading.value=true;request<Conversation[]>('/conversations','GET',null,(items)=>{conversations.value=items;loading.value=false},(e)=>{loading.value=false;report(e)})}
+onShow(load)
+function open(id: string) {uni.navigateTo({url:'/pages/chat/index'+(id.length>0?'?id='+id:'')})}
+function menu(c:Conversation) {
+ uni.showActionSheet({itemList:['重命名','删除对话'],success:(res)=>{
+  if(res.tapIndex==0) uni.showModal({title:'对话名称',editable:true,placeholderText:c.title,success:(r)=>{
+   if(r.confirm && (r.content??'').trim().length>0) request<Ok>('/conversations/'+c.id,'PATCH',{title:(r.content??'').trim()},(_)=>load(),report)
+  }})
+  if(res.tapIndex==1) confirmDelete('删除这段对话？',()=>request<Ok>('/conversations/'+c.id,'DELETE',null,(_)=>load(),report))
+ }})
+}
+function date(value:string):string {return value.substring(5,10).replace('-','月')+'日'}
+</script>
+<template>
+<view class="screen"><view class="safe"/><view class="header"><view><text class="title">随心记</text><text class="subtitle">随心聊，轻松记。</text></view></view><scroll-view class="list" scroll-y refresher-enabled :refresher-triggered="loading" @refresherrefresh="load"><view class="body"><view class="hello" @click="open('')"><view class="row"><text class="hello-title">今天，想聊点什么？</text><text class="hello-arrow">→</text></view><text class="hello-copy">通过聊天记录生活，自动整理，在需要时找回。</text><view class="hello-tags"><text class="hello-tag">接着聊</text><text class="hello-tag">帮我记住</text><text class="hello-tag">找找记忆</text></view></view><text class="section-label">最近对话</text><view v-if="conversations.length==0" class="empty"><text class="empty-title">从一句话开始</text><text class="hint">点上方卡片，开启第一段对话</text></view><view v-for="c in conversations" :key="c.id" class="card conversation" @click="open(c.id)" @longpress="menu(c)"><view class="conversation-icon"><text class="conversation-glyph">聊</text></view><view class="conversation-content"><text class="label conversation-title" :max-lines="1">{{c.title}}</text><text class="subtitle">{{date(c.updated_at)}} · 点击继续对话</text></view><text class="more" @click.stop="menu(c)">···</text></view></view></scroll-view></view>
+</template>
+<style>
+.list { flex:1; }
+.hello { background-color:#285E4A; border-radius:24px; padding:24px; margin-top:8px; }
+.hello-title { font-size:21px; font-weight:600; color:#FFFFFF; }
+.hello-arrow { color:#A9C6B5; font-size:24px; }
+.hello-copy { color:#CEE0D3; font-size:13px; margin-top:14px; line-height:22px; }
+.hello-tags { flex-direction:row; margin-top:26px; }
+.hello-tag { color:#DDEBE1; border:1px solid #628371; border-radius:12px; font-size:11px; padding:5px 9px; margin-right:8px; }
+.conversation { flex-direction:row; align-items:center; padding:18px 16px; }
+.conversation-icon { width:44px; height:44px; border-radius:16px; background-color:#F0F4EB; justify-content:center; align-items:center; margin-right:14px; }
+.conversation-glyph { color:#62816B; font-size:16px; }
+.conversation-content { flex:1; overflow:hidden; }
+.conversation-title { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.more { color:#899A8C; font-size:24px; padding:10px; }
+</style>

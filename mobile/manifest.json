@@ -1,0 +1,35 @@
+{
+    "name": "随心记",
+    "appid": "__UNI__YOUR_APP_ID",
+    "description": "通过聊天记录生活，自动整理，在需要时找回。",
+    "versionName": "0.2.4",
+    "versionCode": 204,
+    "uni-app-x": {},
+    "app-android": {
+        "distribute": {
+            "modules": {},
+            "icons": {
+                "hdpi": "static/brand/app-icon-72.png",
+                "xhdpi": "static/brand/app-icon-96.png",
+                "xxhdpi": "static/brand/app-icon-144.png",
+                "xxxhdpi": "static/brand/app-icon-192.png"
+            },
+            "splashScreens": {}
+        }
+    },
+    "web": {
+        "router": {
+            "base": "/",
+            "mode": "hash"
+        }
+    },
+    "app-harmony": {
+        "distribute": {
+            "bundleName": "com.example.suixinji",
+            "icons": {
+                "foreground": "static/brand/app-icon-foreground.png",
+                "background": "static/brand/app-icon-background.png"
+            }
+        }
+    }
+}

@@ -1,0 +1,23 @@
+<script setup lang="uts">
+import type {MarkdownRun} from '../common/markdown.uts'
+defineProps<{runs:MarkdownRun[],heading?:boolean}>()
+function openLink(url:string){
+ if(!url.startsWith('https://')&&!url.startsWith('http://'))return
+ // #ifdef APP-HARMONY
+ UTSHarmony.getUIAbilityContext().openLink(url,{appLinkingOnly:false}).catch((_)=>uni.setClipboardData({data:url}))
+ // #endif
+ // #ifndef APP-HARMONY
+ uni.setClipboardData({data:url})
+ // #endif
+}
+</script>
+<template><text class="inline" :class="heading==true?'heading-inline':''" :user-select="true"><text v-for="(run,i) in runs" :key="i" :class="[run.bold?'strong':'',run.italic?'emphasis':'',run.strike?'strike':'',run.code?'inline-code':'',run.url.length>0?'link':'']" @click="openLink(run.url)">{{run.text}}</text></text></template>
+<style>
+.inline { color:#384231; font-size:15px; line-height:25px; }
+.heading-inline { font-size:17px; line-height:26px; font-weight:600; }
+.strong { font-weight:600; }
+.emphasis { font-style:italic; }
+.strike { text-decoration-line:line-through; }
+.inline-code { font-family:monospace; font-size:14px; background-color:#EEF1E7; }
+.link { color:#4A8052; text-decoration-line:underline; }
+</style>

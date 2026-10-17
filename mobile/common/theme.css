@@ -1,0 +1,20 @@
+.screen { flex: 1; background-color: #F7F8F4; }
+.safe { height: var(--status-bar-height); }
+.header { padding: 24px 24px 18px; flex-direction: row; align-items: center; justify-content: space-between; }
+.title { font-size: 28px; font-weight: 700; color: #233F33; }
+.subtitle { font-size: 13px; line-height: 21px; color: #8B9690; margin-top: 6px; }
+.body { padding: 0 20px 24px; }
+.card { background-color: #FFFFFF; border-radius: 20px; padding: 20px; margin-bottom: 12px; }
+.row { flex-direction: row; align-items: center; justify-content: space-between; }
+.label { font-size: 16px; color: #293C33; font-weight: 600; }
+.hint { font-size: 13px; color: #8B9690; line-height: 22px; }
+.copy { font-size: 15px; color: #46574D; line-height: 25px; }
+.primary { background-color: #285E4A; color: #FFFFFF; border-radius: 16px; font-size: 16px; height: 52px; line-height: 52px; margin: 0; border: 0; }
+.secondary { background-color: #EAF0E9; color: #285E4A; border-radius: 14px; font-size: 14px; margin: 0; }
+.field { background-color: #F1F4EF; border-radius: 14px; padding: 14px; font-size: 16px; color: #293C33; margin-top: 10px; min-height: 48px; }
+.section-label { font-size: 12px; color: #8B9690; margin: 20px 4px 12px; }
+.pill { font-size: 12px; color: #285E4A; background-color: #EAF0E9; padding: 5px 10px; border-radius: 12px; }
+.empty { align-items: center; padding: 70px 20px; }
+.empty-title { color: #293C33; font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+.plus { background-color: #285E4A; color: #FFFFFF; width: 44px; height: 44px; border-radius: 22px; line-height: 44px; text-align: center; font-size: 26px; }
+.footer { padding: 16px 20px; background-color: #F7F8F4; }

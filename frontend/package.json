@@ -1,0 +1,1 @@
+{"name":"self-agent-h5","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"vite --host 127.0.0.1","build":"vue-tsc --noEmit && vite build"},"dependencies":{"vue":"^3.5.22","marked":"^16.3.0","dompurify":"^3.2.7"},"devDependencies":{"vite":"^7.1.7","@vitejs/plugin-vue":"^6.0.1","typescript":"^5.9.2","vue-tsc":"^3.0.8"}}

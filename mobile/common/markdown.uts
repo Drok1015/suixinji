@@ -1,0 +1,115 @@
+export type MarkdownRun = { text:string, bold:boolean, italic:boolean, strike:boolean, code:boolean, url:string }
+export type MarkdownBlock = { kind:string, text:string, marker:string, indent:number, runs:MarkdownRun[], rows:string[][] }
+
+function plainRun(text:string):MarkdownRun {
+ return {text:text,bold:false,italic:false,strike:false,code:false,url:''}
+}
+
+// Native text nodes only: model-generated HTML is always displayed as text.
+export function inlineMarkdown(source:string, depth:number=0):MarkdownRun[] {
+ const runs:MarkdownRun[]=[]
+ if(depth>8)return [plainRun(source)]
+ let plain='';let i=0
+ const flush=()=>{if(plain.length>0){runs.push(plainRun(plain));plain=''}}
+ while(i<source.length) {
+  if(source[i]=='\\' && i+1<source.length){plain+=source[i+1];i+=2;continue}
+  if(source[i]=='`') {
+   let width=1
+   while(source[i+width]=='`')width++
+   const delimiter='`'.repeat(width)
+   const end=source.indexOf(delimiter,i+width)
+   if(end>=0){flush();const run=plainRun(source.substring(i+width,end));run.code=true;runs.push(run);i=end+width;continue}
+  }
+  if(source[i]=='[' || (source[i]=='!' && source[i+1]=='[')) {
+   const start=source[i]=='!'?i+1:i
+   const close=source.indexOf('](',start+1)
+   const end=close>=0?source.indexOf(')',close+2):-1
+   if(end>=0) {
+    const url=source.substring(close+2,end).trim()
+    if(url.startsWith('https://')||url.startsWith('http://')) {
+     flush();const children=inlineMarkdown(source.substring(start+1,close),depth+1)
+     for(const child of children){child.url=url;runs.push(child)}
+     i=end+1;continue
+    }
+   }
+  }
+  let delimiter=''
+  const pair=source.substring(i,i+2)
+  if(pair=='**'||pair=='__'||pair=='~~')delimiter=pair
+  else if(source[i]=='*'||source[i]=='_')delimiter=source[i]
+  if(delimiter.length>0) {
+   let end=source.indexOf(delimiter,i+delimiter.length)
+   // Preserve the inner emphasis marker in **bold *italic*** and ***both***.
+   if(delimiter.length==2 && delimiter!='~~' && end>=0 && source[end+2]==delimiter[0])end++
+   if(end>i+delimiter.length) {
+    flush();const children=inlineMarkdown(source.substring(i+delimiter.length,end),depth+1)
+    for(const child of children){
+     if(delimiter=='~~')child.strike=true
+     else if(delimiter.length==2)child.bold=true
+     else child.italic=true
+     runs.push(child)
+    }
+    i=end+delimiter.length;continue
+   }
+  }
+  plain+=source[i];i++
+ }
+ flush();return runs
+}
+
+function block(kind:string,text:string,marker:string='',indent:number=0):MarkdownBlock {
+ return {kind:kind,text:text,marker:marker,indent:indent,runs:inlineMarkdown(text),rows:[]}
+}
+function tableCells(line:string):string[] {
+ let value=line.trim()
+ if(value.startsWith('|'))value=value.substring(1)
+ if(value.endsWith('|'))value=value.substring(0,value.length-1)
+ const cells:string[]=[];let cell='';let code=false
+ for(let i=0;i<value.length;i++) {
+  if(value[i]=='\\' && value[i+1]=='|'){cell+='|';i++;continue}
+  if(value[i]=='`')code=!code
+  if(value[i]=='|'&&!code){cells.push(cell.trim());cell=''}else cell+=value[i]
+ }
+ cells.push(cell.trim());return cells
+}
+function tableDivider(line:string):boolean {
+ const cells=tableCells(line)
+ return cells.length>1 && cells.every((cell:string)=>/^:?-{3,}:?$/.test(cell))
+}
+
+export function parseMarkdown(content:string):MarkdownBlock[] {
+ const result:MarkdownBlock[]=[]
+ const lines=content.replace(/\r\n?/g,'\n').split('\n')
+ let paragraph:string[]=[];let i=0
+ const flush=()=>{if(paragraph.length>0){result.push(block('paragraph',paragraph.join('\n')));paragraph=[]}}
+ while(i<lines.length) {
+  const raw=lines[i];const line=raw.trim()
+  if(line.length==0){flush();i++;continue}
+  const fence=line.match(/^(`{3,}|~{3,})(.*)$/)
+  if(fence!=null) {
+   flush();const code:string[]=[];const delimiter=fence[1];i++
+   while(i<lines.length&&!lines[i].trim().startsWith(delimiter)){code.push(lines[i]);i++}
+   if(i<lines.length)i++
+   result.push(block('code',code.join('\n'),fence[2].trim()));continue
+  }
+  if(i+1<lines.length && line.includes('|') && tableDivider(lines[i+1])) {
+   flush();const table=block('table','');table.rows.push(tableCells(line));i+=2
+   while(i<lines.length&&lines[i].trim().includes('|')&&lines[i].trim().length>0){table.rows.push(tableCells(lines[i]));i++}
+   result.push(table);continue
+  }
+  const heading=line.match(/^(#{1,6})\s+(.+)$/)
+  if(heading!=null){flush();result.push(block('heading',heading[2].replace(/\s+#+$/,'')));i++;continue}
+  if(/^([-*_])(?:\s*\1){2,}$/.test(line)){flush();result.push(block('rule',''));i++;continue}
+  if(line.startsWith('>')){flush();result.push(block('quote',line.replace(/^>\s?/,'')));i++;continue}
+  const list=raw.match(/^(\s*)([-+*]|\d+[.)])\s+(.+)$/)
+  if(list!=null) {
+   flush();const marker=/^\d/.test(list[2])?list[2]:'•'
+   result.push(block('list',list[3],marker,Math.min(list[1].length,6)));i++;continue
+  }
+  if(/^\s{2,}\S/.test(raw) && result.length>0 && result[result.length-1].kind=='list' && paragraph.length==0) {
+   const previous=result[result.length-1];previous.text+='\n'+line;previous.runs=inlineMarkdown(previous.text);i++;continue
+  }
+  paragraph.push(raw);i++
+ }
+ flush();return result
+}

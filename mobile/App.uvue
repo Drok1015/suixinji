@@ -1,0 +1,10 @@
+<script lang="uts">
+import {checkUpdate} from './common/update.uts'
+export default { onLaunch() {}, onShow() {checkUpdate()} }
+</script>
+<style>
+@import './common/theme.css';
+/* #ifndef APP */
+page { background-color: #F7F8F4; }
+/* #endif */
+</style>

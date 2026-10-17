@@ -1,0 +1,4 @@
+<script setup lang="uts">
+onLoad(() => uni.switchTab({url:'/pages/home/index'}))
+</script>
+<template><view class="screen"><text>正在进入随心记…</text></view></template>

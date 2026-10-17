@@ -1,0 +1,28 @@
+const assert = require('node:assert/strict');
+const vm = require('node:vm');
+const fs = require('node:fs');
+const ts = require('../frontend/node_modules/typescript');
+const source = fs.readFileSync('mobile/common/markdown.uts', 'utf8');
+const compiled = ts.transpileModule(source, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+const context = {exports:{}};
+vm.runInNewContext(compiled, context);
+const {parseMarkdown, inlineMarkdown} = context.exports;
+
+const blocks = parseMarkdown('\n## 菜花做法\n\n先准备 **菜花** 和 `生抽`。\n\n\n1. 洗净\n2. *炒熟*\n\n> 少量加水\n\n```js\nconst count = 2;\n\n  console.log(count);\n```\n\n| 食材 | 用量 |\n| --- | --- |\n| 菜花 | 半颗 |\n');
+assert.deepEqual(Array.from(blocks, b => b.kind), ['heading','paragraph','list','list','quote','code','table']);
+assert(blocks[1].runs.some(r => r.bold && r.text === '菜花'));
+assert(blocks[1].runs.some(r => r.code && r.text === '生抽'));
+assert.equal(blocks[2].marker, '1.');
+assert(blocks[3].runs.some(r => r.italic && r.text === '炒熟'));
+assert.equal(blocks[5].text, 'const count = 2;\n\n  console.log(count);');
+assert.equal(blocks[6].rows[1][0], '菜花');
+assert.equal(parseMarkdown('一段\n\n\n\n第二段\n\n').length, 2);
+assert.equal(parseMarkdown('```python\nprint(1)').at(-1).text, 'print(1)');
+assert.equal(inlineMarkdown('**还在输出').map(r=>r.text).join(''), '**还在输出');
+assert(inlineMarkdown('**粗体里有 *斜体***').some(r => r.bold && r.italic && r.text === '斜体'));
+assert(inlineMarkdown('***同时强调***').some(r => r.bold && r.italic && r.text === '同时强调'));
+assert.equal(inlineMarkdown('[官网](https://example.com)')[0].url, 'https://example.com');
+assert(inlineMarkdown('[危险](javascript:alert(1))').every(r => !r.url));
+assert.equal(inlineMarkdown('<script>alert(1)</script>').map(r=>r.text).join(''), '<script>alert(1)</script>');
+assert.equal(parseMarkdown('| A | B |\n| --- | --- |\n| x\\|y | `a|b` |')[0].rows[1][0], 'x|y');
+console.log('MOBILE_MARKDOWN_BLOCKS_INLINE_STREAMING_AND_SAFE_LINKS_OK');

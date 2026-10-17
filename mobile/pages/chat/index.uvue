@@ -1,0 +1,71 @@
+<script setup lang="uts">
+import {request,report,requireLogin} from '../../common/api.uts'
+import MessageBody from '../../components/MessageBody.uvue'
+import {streamChat} from '../../common/sse.uts'
+import type {Conversation, Message, MessagesData, Route, Ok} from '../../common/types.uts'
+const cid=ref(''),draft=ref(''),phase=ref(''),busy=ref(false),stopping=ref(false),target=ref(''),external=ref(false)
+const messages=ref<Message[]>([])
+const bottomInset=uni.getWindowInfo().safeAreaInsets.bottom
+const bubbleWidth=(uni.getWindowInfo().windowWidth-36)*0.92
+let disposed=false
+let task:RequestTask|null=null
+function scroll(){target.value='';nextTick(()=>{target.value='tail'})}
+function load(){if(cid.value.length==0)return;request<MessagesData>('/conversations/'+cid.value+'/messages','GET',null,(data)=>{messages.value=data.messages;external.value=data.active;scroll()},report)}
+onLoad((options)=>{if(!requireLogin())return;cid.value=options['id']??'';load()})
+onUnload(()=>{disposed=true;if(busy.value && cid.value.length>0) request<Ok>('/conversations/'+cid.value+'/stop','POST',null,(_)=>{},(_)=>{});task?.abort()})
+function begin(text:string,retryId:string){
+ if(disposed)return
+ const body=new UTSJSONObject();body.set('content',text);if(retryId.length>0)body.set('retry_message_id',retryId)
+ if(retryId.length==0) messages.value.push({id:'local-user',role:'user',content:text,status:'complete',route:{status:null,topic_names:null,memory_count:null,notice:null}})
+ else messages.value.pop()
+ messages.value.push({id:'local-assistant',role:'assistant',content:'',status:'streaming',route:{status:null,topic_names:null,memory_count:null,notice:null}})
+ scroll()
+ task=streamChat(cid.value,body,{
+  onEvent:(kind,data)=>{
+   const index=messages.value.length-1
+   if(kind=='start') {messages.value[index].id=data.getString('assistant_id')??'';messages.value[index-1].id=data.getString('user_id')??'';if(stopping.value)request<Ok>('/conversations/'+cid.value+'/stop','POST',null,(_)=>{},report)}
+   if(kind=='route') {messages.value[index].route=JSON.parse(JSON.stringify(data)) as Route;phase.value='正在回复'}
+   if(kind=='delta') {messages.value[index].content+=data.getString('text')??'';scroll()}
+   if(kind=='done') messages.value[index].status='complete'
+   if(kind=='stopped') messages.value[index].status='interrupted'
+   if(kind=='error') {messages.value[index].status='error';report(data.getString('message')??'回复失败')}
+  },onError:(err)=>{messages.value[messages.value.length-1].status='error';report(err)},
+  onClose:()=>{busy.value=false;stopping.value=false;task=null;load()}
+ })
+}
+function send(){
+ const text=draft.value.trim();if(text.length==0||busy.value||external.value)return
+ busy.value=true;phase.value='正在匹配记忆';draft.value=''
+ if(cid.value.length>0){begin(text,'');return}
+ request<Conversation>('/conversations','POST',null,(c)=>{cid.value=c.id;begin(text,'')},(e)=>{busy.value=false;draft.value=text;report(e)})
+}
+function stop(){if(stopping.value)return;stopping.value=true;if(cid.value.length==0)return;request<Ok>('/conversations/'+cid.value+'/stop','POST',null,(_)=>{},(e)=>{stopping.value=false;report(e)})}
+function retry(){if(busy.value||messages.value.length<2)return;busy.value=true;phase.value='正在匹配记忆';const m=messages.value[messages.value.length-2];begin(m.content,m.id)}
+function copy(m:Message){uni.setClipboardData({data:m.content})}
+function routeLabel(r:Route):string {return (r.topic_names??[]).join(' · ')}
+</script>
+<template>
+<view class="screen"><scroll-view class="chat-list" scroll-y :scroll-into-view="target" :scroll-with-animation="false"><view class="chat-body"><view v-if="messages.length==0" class="empty"><image class="welcome-logo" src="/static/brand/app-icon.png" mode="aspectFit"/><text class="empty-title">有事，和我聊聊</text><text class="hint">记一个计划，问一道菜，\n或说说今天的心情。</text><view class="quick"><text class="quick-item" @click="draft='你记得哪些关于我的事情？'">看看我的记忆 ↗</text><text class="quick-item" @click="draft='帮我梳理一下最近的计划。'">理一理最近的计划 ↗</text></view></view><view v-for="(m,i) in messages" :key="m.id" class="message" :class="m.role=='user'?'user':'assistant'"><text v-if="m.role=='assistant'" class="assistant-name">随心记</text><view class="bubble" :style="{maxWidth:bubbleWidth+'px'}" :class="m.role=='user'?'user-bubble':'assistant-bubble'" @longpress="copy(m)"><MessageBody v-if="m.content.length>0" :content="m.content" :user="m.role=='user'"/><text v-else class="hint">{{busy?phase:'回复未完成'}}</text></view><view v-if="m.role=='assistant'" class="message-info"><text v-if="(m.route.memory_count??0)>0" class="memory-ref">{{routeLabel(m.route)}} · 参考 {{m.route.memory_count}} 条记忆</text><text v-if="m.status=='interrupted'" class="hint">已停止</text><text v-if="!busy && i==messages.length-1 && (m.status=='error'||m.status=='interrupted')" class="retry" @click="retry">重新回复 ↻</text></view></view><view id="tail" style="height:12px"/></view></scroll-view><view class="composer" :style="{paddingBottom:(12+bottomInset)+'px'}"><text v-if="external" class="hint" @click="load">此对话正在其他设备回复，点此刷新</text><view class="input-row"><textarea class="chat-input" v-model="draft" :auto-height="true" :maxlength="12000" :disabled="busy||external" placeholder="说点什么…" :adjust-position="true" :cursor-spacing="20" confirm-type="done"/><text v-if="busy" class="send stop" @click="stop">{{stopping?'…':'■'}}</text><text v-else class="send" :class="draft.trim().length==0?'disabled':''" @click="send">↑</text></view></view></view>
+</template>
+<style>
+.chat-list { flex:1; }
+.chat-body { padding:20px 18px 8px; }
+.message { margin-bottom:24px; align-items:flex-start; }
+.user { align-items:flex-end; }
+.bubble { border-radius:12px; padding:10px 14px; }
+.user-bubble { background-color:#EFF1E8; border-top-right-radius:3px; }
+.assistant-bubble { background-color:#FFFFFF; border-top-left-radius:3px; }
+.assistant-name { color:#6B7561; font-size:12px; margin-bottom:5px; margin-left:4px; }
+.message-info { margin:8px 4px 0; }
+.memory-ref { color:#6B8B72; font-size:11px; line-height:18px; }
+.retry { font-size:13px; color:#285E4A; padding:10px 0; }
+.composer { background-color:#F7F8F4; padding:12px 16px; }
+.input-row { flex-direction:row; align-items:flex-end; background-color:#FFFFFF; border-radius:24px; padding:10px 12px 10px 18px; }
+.chat-input { flex:1; font-size:16px; min-height:28px; max-height:140px; padding-top:6px; color:#293C33; }
+.send { width:38px; height:38px; border-radius:19px; background-color:#285E4A; color:#FFFFFF; text-align:center; line-height:38px; font-size:24px; margin-left:10px; }
+.disabled { background-color:#DCE4DC; }
+.stop { font-size:15px; }
+.welcome-logo { width:64px; height:64px; border-radius:24px; background-color:#E6EEDD; align-items:center; justify-content:center; margin-bottom:24px; }
+.quick { margin-top:32px; }
+.quick-item { background-color:#FFFFFF; padding:14px 20px; border-radius:16px; margin-bottom:10px; font-size:14px; color:#657D69; }
+</style>

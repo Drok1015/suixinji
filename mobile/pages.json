@@ -1,0 +1,81 @@
+{
+  "pages": [
+    {
+      "path": "pages/home/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/memory/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/chat/index",
+      "style": {
+        "navigationBarTitleText": "随心记",
+        "app-android": {
+          "softinputMode": "adjustResize"
+        }
+      }
+    },
+    {
+      "path": "pages/editor/index",
+      "style": {
+        "navigationBarTitleText": "编辑记忆"
+      }
+    },
+    {
+      "path": "pages/topics/index",
+      "style": {
+        "navigationBarTitleText": "管理分类"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarBackgroundColor": "#F7F8F4",
+    "backgroundColor": "#F7F8F4",
+    "backgroundColorContent": "#F7F8F4"
+  },
+  "tabBar": {
+    "color": "#939B96",
+    "selectedColor": "#285E4A",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "对话",
+        "iconPath": "static/chat.png",
+        "selectedIconPath": "static/chat-active.png"
+      },
+      {
+        "pagePath": "pages/memory/index",
+        "text": "记忆",
+        "iconPath": "static/memory.png",
+        "selectedIconPath": "static/memory-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "static/profile.png",
+        "selectedIconPath": "static/profile-active.png"
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+const {chromium}=require('/opt/homebrew/lib/node_modules/playwright');
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ const page=await browser.newPage({viewport:{width:1440,height:1000}});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('https://example.com/self-agent/');
+ await page.getByRole('button',{name:'新的对话',exact:false}).waitFor();
+ await page.getByRole('button',{name:'新的对话',exact:false}).click();
+ await page.getByRole('heading',{name:'今天，想聊些什么？'}).waitFor();
+ await page.screenshot({path:'docs/qa/online-desktop.png',animations:'disabled'});
+ await page.setViewportSize({width:390,height:844});
+ await page.getByRole('button',{name:'打开菜单',exact:true}).waitFor({state:'visible'});
+ await page.screenshot({path:'docs/qa/online-mobile.png',animations:'disabled'});
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth))throw new Error('Mobile overflow');
+ await page.getByRole('button',{name:'打开菜单',exact:true}).click();
+ await page.locator('.nav').getByRole('button',{name:'我的记忆',exact:false}).click();
+ await page.getByRole('heading',{name:'我的记忆',exact:true}).waitFor();
+ await page.getByRole('button',{name:'新建分类',exact:true}).click();
+ await page.getByRole('heading',{name:'添加分类',exact:true}).waitFor();
+ await page.getByRole('button',{name:'取消',exact:true}).click();
+ await page.screenshot({path:'docs/qa/online-memory-mobile.png',animations:'disabled'});
+ if(errors.length)throw new Error(errors.join('; '));
+ console.log('ONLINE_BROWSER_QA_OK');
+ await browser.close();
+})().catch(e=>{console.error(e.message);process.exit(1)});

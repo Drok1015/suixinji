@@ -1,0 +1,29 @@
+// #ifdef WEB
+export const API_BASE = '/self-agent/api'
+// #endif
+// #ifndef WEB
+export const API_BASE = 'https://example.com/self-agent/api'
+// #endif
+export function token(): string { return uni.getStorageSync('self-agent-token') as string | null ?? '' }
+export function headers(): UTSJSONObject {
+ const h = new UTSJSONObject()
+ h.set('Content-Type', 'application/json')
+ h.set('X-Self-Agent', '1')
+ return h
+}
+export function report(message: string) { uni.showToast({title: message, icon: 'none', duration: 2500}) }
+export function requireLogin(): boolean { return true }
+export function request<T>(path: string, method: RequestMethod, body: UTSJSONObject | null, ok: (data: T) => void, fail: (error: string) => void) {
+ uni.request<T>({url: API_BASE + path, method: method, header: headers(), data: body, timeout: 30000,
+  success: (res) => {
+   if (res.statusCode == 401) { uni.removeStorageSync('self-agent-token'); if (path != '/login') uni.reLaunch({url:'/pages/login/index'}) }
+   if (res.statusCode >= 200 && res.statusCode < 300 && res.data != null) {ok(res.data!); return}
+   let detail = '请求失败，请稍后重试'
+   if (res.statusCode == 401) detail = '请重新登录'
+   if (res.statusCode == 409) detail = '当前操作冲突，请刷新后重试'
+   if (res.statusCode == 429) detail = '尝试过于频繁，请稍后再试'
+   fail(detail)
+  }, fail: (_) => fail('网络连接失败，请检查网络')
+ })
+}
+export function confirmDelete(title: string, action: () => void) { uni.showModal({title: title, content: '删除后无法恢复，是否继续？', confirmText:'删除', confirmColor:'#B54E42', success:(res) => {if(res.confirm) action()} }) }

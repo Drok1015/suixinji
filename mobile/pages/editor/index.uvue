@@ -1,0 +1,36 @@
+<script setup lang="uts">
+import {request,report,requireLogin,confirmDelete} from '../../common/api.uts'
+import type {MemoryData,Memory,Topic,Ok} from '../../common/types.uts'
+const bottomInset=uni.getWindowInfo().safeAreaInsets.bottom
+const id=ref(''),name=ref(''),content=ref(''),topicId=ref(''),source=ref(''),busy=ref(false)
+const topics=ref<Topic[]>([])
+const choices=computed(()=>['通用记忆'].concat(topics.value.map((t:Topic)=>t.name)))
+const selected=computed(()=>topicId.value.length==0?0:topics.value.findIndex((t:Topic)=>t.id==topicId.value)+1)
+onLoad((options)=>{
+ if(!requireLogin())return
+ id.value=options['id']??''
+ const scope=options['scope']??''
+ request<MemoryData>('/memory','GET',null,(d)=>{
+  topics.value=d.topics
+  if(id.value.length>0){const m=d.memories.find((m:Memory)=>m.id==id.value);if(m==null){report('记忆不存在');uni.navigateBack();return}name.value=m.key;content.value=m.content;topicId.value=m.topic_id??'';source.value=m.source_content??''}
+  else if(topics.value.some((t:Topic)=>t.id==scope))topicId.value=scope
+  uni.setNavigationBarTitle({title:id.value.length>0?'编辑记忆':'添加记忆'})
+ },report)
+})
+function change(e:UniPickerChangeEvent){const i=parseInt(e.detail.value as string);topicId.value=i==0?'':topics.value[i-1].id}
+function save(){
+ if(busy.value)return
+ if(name.value.trim().length==0||content.value.trim().length==0){report('请填写名称和内容');return}
+ busy.value=true
+ const body:UTSJSONObject={key:name.value.trim(),content:content.value.trim(),scope:topicId.value.length==0?'global':'topic',topic_id:topicId.value.length==0?null:topicId.value}
+ request<Ok>('/memories'+(id.value.length>0?'/'+id.value:''),id.value.length>0?'PATCH':'POST',body,(_)=>{busy.value=false;uni.navigateBack()},(e)=>{busy.value=false;report(e)})
+}
+function remove(){confirmDelete('删除这条记忆？',()=>request<Ok>('/memories/'+id.value,'DELETE',null,(_)=>uni.navigateBack(),report))}
+</script>
+<template><view class="screen"><scroll-view scroll-y class="editor"><view class="body"><text class="section-label">留住的每一件事，都由你决定</text><view class="card"><text class="label">记忆名称</text><input class="field" v-model="name" :maxlength="100" placeholder="例如：土豆豆角菜谱"/><text class="section-label">保存到</text><picker :range="choices" :value="selected" @change="change"><view class="row field"><text class="copy">{{choices[selected]}}</text><text class="hint">选择分类 ›</text></view></picker><text class="section-label">记忆内容</text><textarea class="field content-field" v-model="content" :maxlength="2000" placeholder="写下准确的日期、安排或做法…" :auto-height="true"/></view><view v-if="source.length>0" class="card"><text class="label">原始对话</text><text class="copy source">{{source}}</text></view><text v-if="id.length>0" class="delete" @click="remove">删除这条记忆</text></view></scroll-view><view class="footer" :style="{paddingBottom:(16+bottomInset)+'px'}"><button class="primary" :disabled="busy" @click="save">{{busy?'正在保存…':'保存记忆'}}</button></view></view></template>
+<style>
+.editor { flex:1; }
+.content-field { min-height:180px; width:100%; }
+.source { margin-top:12px; }
+.delete { font-size:14px; color:#B54E42; text-align:center; padding:20px; }
+</style>

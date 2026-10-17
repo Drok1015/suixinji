@@ -1,0 +1,20 @@
+<script setup lang="uts">
+import {request,report,requireLogin,confirmDelete} from '../../common/api.uts'
+import type {MemoryData,Topic,Ok} from '../../common/types.uts'
+const topics=ref<Topic[]>([]),name=ref(''),description=ref(''),editing=ref(''),busy=ref(false)
+function load(){if(!requireLogin())return;request<MemoryData>('/memory','GET',null,(d)=>topics.value=d.topics,report)}
+onShow(load)
+function save(){if(busy.value||name.value.trim().length==0)return;busy.value=true;request<Ok>('/topics'+(editing.value.length>0?'/'+editing.value:''),editing.value.length>0?'PATCH':'POST',{name:name.value.trim(),description:description.value.trim()},(_)=>{busy.value=false;name.value='';description.value='';editing.value='';load()},(e)=>{busy.value=false;report(e)})}
+function menu(t:Topic){uni.showActionSheet({itemList:['编辑分类','合并到其他分类','删除分类及记忆'],success:(r)=>{
+ if(r.tapIndex==0){editing.value=t.id;name.value=t.name;description.value=t.description}
+ if(r.tapIndex==2)confirmDelete('删除分类及其中所有记忆？',()=>request<Ok>('/topics/'+t.id,'DELETE',null,(_)=>load(),report))
+ if(r.tapIndex==1){const others=topics.value.filter((o:Topic)=>o.id!=t.id);if(others.length==0){report('先创建另一个分类');return}uni.showActionSheet({itemList:others.map((o:Topic)=>o.name),success:(result)=>{const to=others[result.tapIndex];uni.showModal({title:'合并分类',content:'将「'+t.name+'」合并到「'+to.name+'」，两边记忆都会保留。',success:(answer)=>{if(answer.confirm)request<Ok>('/topics/'+t.id+'/merge','POST',{target_id:to.id},(_)=>load(),report)}})}})}
+}})}
+</script>
+<template><view class="screen"><scroll-view scroll-y class="list"><view class="body"><text class="section-label">让记忆各有所归</text><view class="card"><text class="label">{{editing.length>0?'编辑分类':'新建分类'}}</text><input class="field" v-model="name" :maxlength="40" placeholder="例如：做饭菜谱"/><input class="field" v-model="description" :maxlength="300" placeholder="包含哪些内容？"/><button class="secondary save" :disabled="busy||name.trim().length==0" @click="save">{{busy?'保存中…':'保存分类'}}</button><text v-if="editing.length>0" class="hint cancel" @click="editing='';name='';description=''">取消编辑</text></view><text class="section-label">已有分类 · {{topics.length}}</text><view v-for="t in topics" :key="t.id" class="card" @click="menu(t)"><view class="row"><text class="label">{{t.name}}</text><text class="hint">{{t.memory_count}} 条 ···</text></view><text class="copy description">{{t.description}}</text></view></view></scroll-view></view></template>
+<style>
+.list { flex:1; }
+.save { margin-top:16px; }
+.description { margin-top:10px; }
+.cancel { margin-top:12px; text-align:center; padding:8px; }
+</style>

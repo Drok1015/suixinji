@@ -1,0 +1,43 @@
+<script setup lang="uts">
+import {request,report,requireLogin,confirmDelete} from '../../common/api.uts'
+import type {MemoryData,Memory,Topic,Pending,Ok} from '../../common/types.uts'
+const data=ref<MemoryData>({topics:[],memories:[],pending:[]})
+const filter=ref('all'),search=ref(''),loading=ref(false)
+const visible=computed(()=>data.value.memories.filter((m:Memory)=>(filter.value=='all'||(filter.value=='global'?m.scope=='global':m.topic_id==filter.value)) && (m.key+m.content).includes(search.value)))
+let refreshTimer:number|null=null
+function load(){if(!requireLogin())return;loading.value=true;request<MemoryData>('/memory','GET',null,(d)=>{data.value=d;loading.value=false},(e)=>{loading.value=false;report(e)})}
+onShow(()=>{load();refreshTimer=setInterval(load,10000)})
+onHide(()=>{if(refreshTimer!=null)clearInterval(refreshTimer!);refreshTimer=null})
+onUnload(()=>{if(refreshTimer!=null)clearInterval(refreshTimer!)})
+function edit(m:Memory|null){uni.navigateTo({url:'/pages/editor/index'+(m==null?'?scope='+filter.value:'?id='+m.id)})}
+function menu(m:Memory){uni.showActionSheet({itemList:['编辑记忆','查看来源','删除记忆'],success:(r)=>{
+ if(r.tapIndex==0)edit(m)
+ if(r.tapIndex==1)uni.showModal({title:'记忆来源',content:m.source_content??'这条记忆由你手动维护。',showCancel:false})
+ if(r.tapIndex==2)confirmDelete('删除这条记忆？',()=>request<Ok>('/memories/'+m.id,'DELETE',null,(_)=>load(),report))
+}})}
+function topicName(m:Memory):string {return m.scope=='global'?'通用记忆':data.value.topics.find((t:Topic)=>t.id==m.topic_id)?.name??'话题记忆'}
+function assign(p:Pending){uni.showActionSheet({itemList:data.value.topics.map((t:Topic)=>t.name),success:(r)=>{
+ request<Ok>('/pending/'+p.id+'/assign','POST',{topic_id:data.value.topics[r.tapIndex].id},(_)=>load(),report)
+}})}
+function retry(){request<Ok>('/memory/retry','POST',null,(_)=>{report('已开始重新整理');load()},report)}
+</script>
+<template>
+<view class="screen"><view class="safe"/><view class="header"><view><text class="title">记忆</text><text class="subtitle">{{data.memories.length}} 条记忆，慢慢更懂你</text></view><text class="plus" @click="edit(null)">＋</text></view><view class="memory-controls"><input class="search-field" v-model="search" placeholder="找一条记忆…"/><scroll-view scroll-x class="chips" :show-scrollbar="false"><view class="chip-row"><text class="chip" :class="filter=='all'?'chosen':''" @click="filter='all'">全部</text><text class="chip" :class="filter=='global'?'chosen':''" @click="filter='global'">通用</text><text v-for="t in data.topics" :key="t.id" class="chip" :class="filter==t.id?'chosen':''" @click="filter=t.id">{{t.name}}</text><text class="chip" :class="filter=='pending'?'chosen':''" @click="filter='pending'">待归类 {{data.pending.length}}</text></view></scroll-view><view class="row tools"><text class="hint">重要的事，随时查看和修改</text><text class="manage" @click="uni.navigateTo({url:'/pages/topics/index'})">管理分类 ›</text></view></view><scroll-view class="list" scroll-y refresher-enabled :refresher-triggered="loading" @refresherrefresh="load"><view class="body"><template v-if="filter=='pending'"><view class="row pending-heading"><text class="hint">等上下文更清楚，再归类</text><text class="manage" @click="retry">重新整理 ↻</text></view><view v-for="p in data.pending" :key="p.id" class="card"><text class="pill">{{p.job_status=='failed'?'整理失败':'等待更多上下文'}}</text><text class="copy pending-copy">{{p.content}}</text><text v-if="p.error!=null" class="hint">{{p.error}}</text><text class="manage assign" @click="assign(p)">选择分类 ›</text></view><view v-if="data.pending.length==0" class="empty"><text class="empty-title">都整理好了</text><text class="hint">暂时没有待归类的内容</text></view></template><template v-else><view v-for="m in visible" :key="m.id" class="card" @click="edit(m)" @longpress="menu(m)"><view class="row"><text class="pill">{{topicName(m)}}</text><text class="more" @click.stop="menu(m)">···</text></view><text class="memory-title">{{m.key}}</text><text class="copy" :max-lines="5">{{m.content}}</text><text class="updated">{{m.updated_at.substring(5,10)}} 更新 · {{m.source_content!=null?'来自对话':'手动记录'}}</text></view><view v-if="visible.length==0" class="empty"><text class="empty-title">{{search.length>0?'换个关键词试试':'留住重要的小事'}}</text><text class="hint">{{search.length>0?'暂时没有找到匹配的记忆':'聊天时告诉我，或点右上角添加'}}</text></view></template></view></scroll-view></view>
+</template>
+<style>
+.list { flex:1; }
+.memory-controls { padding:0 20px; }
+.search-field { background-color:#EDEFEB; height:44px; border-radius:14px; padding:0 16px; font-size:14px; color:#293C33; }
+.chips { height:56px; margin-top:14px; }
+.chip-row { flex-direction:row; }
+.chip { flex-shrink:0; padding:9px 15px; margin-right:8px; border-radius:18px; font-size:13px; color:#738177; background-color:#FFFFFF; }
+.chosen { color:#FFFFFF; background-color:#285E4A; }
+.tools { margin-bottom:16px; }
+.manage { color:#285E4A; font-size:13px; padding:8px 0; }
+.more { color:#8B9690; font-size:22px; padding:0 8px; }
+.memory-title { font-size:18px; font-weight:600; color:#293C33; margin:16px 0 10px; }
+.updated { font-size:11px; color:#A0AAA3; margin-top:16px; }
+.pending-heading { margin-bottom:12px; }
+.pending-copy { margin-top:14px; }
+.assign { margin-top:12px; }
+</style>

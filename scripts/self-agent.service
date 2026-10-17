@@ -1,0 +1,25 @@
+[Unit]
+Description=Suixinji personal chat and memory
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=self-agent
+Group=self-agent
+WorkingDirectory=/opt/self-agent
+Environment=PYTHONPATH=/opt/self-agent/backend
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/self-agent/.venv/bin/uvicorn self_agent.app:create_app --factory --host 127.0.0.1 --port 8025 --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/self-agent/data
+MemoryMax=550M
+
+[Install]
+WantedBy=multi-user.target

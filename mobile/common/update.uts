@@ -1,0 +1,24 @@
+import { API_BASE } from './api.uts'
+type Release = { available: boolean, versionCode: number, versionName: string, notes: string, url: string }
+let checking = false
+export function checkUpdate(manual: boolean = false) {
+ // #ifdef APP-HARMONY
+ if (checking) return
+ checking = true
+ const current = parseInt(uni.getAppBaseInfo().appVersionCode ?? '0')
+ uni.request<Release>({url: API_BASE + '/releases/harmony?current=' + current, timeout: 10000,
+  success: (res) => {
+   const d = res.data
+   if (res.statusCode != 200 || d == null) { if (manual) uni.showToast({title:'检查更新失败',icon:'none'}); return }
+   if (!d.available) { if (manual) uni.showToast({title:'已是最新版本',icon:'none'}); return }
+   if (!d.url.startsWith('https://www.pgyer.com/')) return
+   if (!manual && uni.getStorageSync('update-dismissed') == d.versionCode) return
+   uni.showModal({title:'发现新版本 ' + d.versionName,content:d.notes + '\n将打开蒲公英下载安装页面。',confirmText:'去更新',cancelText:'稍后',success:(r)=>{
+    if (r.confirm) {
+     UTSHarmony.getUIAbilityContext().openLink(d.url, {appLinkingOnly:false}).catch((_)=>{uni.setClipboardData({data:d.url});uni.showToast({title:'已复制下载链接，请用浏览器打开',icon:'none'})})
+    } else uni.setStorageSync('update-dismissed',d.versionCode)
+   }})
+  }, fail:(_)=>{if(manual)uni.showToast({title:'网络连接失败',icon:'none'})},complete:(_)=>{checking=false}
+ })
+ // #endif
+}

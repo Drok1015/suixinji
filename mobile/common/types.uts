@@ -1,0 +1,11 @@
+export type Route = { status: string | null, topic_names: string[] | null, memory_count: number | null, notice: string | null }
+export type Message = { id: string, role: string, content: string, status: string, route: Route }
+export type Conversation = { id: string, title: string, updated_at: string }
+export type Topic = { id: string, name: string, description: string, memory_count: number }
+export type Memory = { id: string, scope: string, topic_id: string | null, key: string, content: string, source_content: string | null, updated_at: string }
+export type Pending = { id: string, content: string, job_status: string, error: string | null }
+export type MemoryData = { topics: Topic[], memories: Memory[], pending: Pending[] }
+export type MessagesData = { messages: Message[], active: boolean }
+export type Me = { name: string, model: string }
+export type LoginData = { ok: boolean, token: string, expires_in: number }
+export type Ok = { ok: boolean }

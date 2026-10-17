@@ -1,0 +1,20 @@
+<script setup lang="uts">
+import {checkUpdate} from '../../common/update.uts'
+import {request,report,requireLogin} from '../../common/api.uts'
+import type {Me,MemoryData} from '../../common/types.uts'
+const model=ref(''),count=ref(0),topics=ref(0)
+onShow(()=>{if(!requireLogin())return;request<Me>('/me','GET',null,(d)=>model.value=d.model,report);request<MemoryData>('/memory','GET',null,(d)=>{count.value=d.memories.length;topics.value=d.topics.length},report)})
+</script>
+<template><view class="screen"><view class="safe"/><view class="header"><text class="title">我的</text></view><scroll-view scroll-y class="list"><view class="body"><view class="identity"><view class="avatar"><text class="avatar-text">我</text></view><text class="identity-title">我的私人空间</text><text class="hint">把生活里的重要小事，好好放在这里</text></view><view class="card row" @click="uni.switchTab({url:'/pages/memory/index'})"><view class="stat"><text class="stat-number">{{count}}</text><text class="hint">保存的记忆</text></view><view class="stat"><text class="stat-number">{{topics}}</text><text class="hint">话题分类</text></view><text class="hint">›</text></view><view class="card"><view class="setting-row" @click="uni.navigateTo({url:'/pages/topics/index'})"><text class="label">管理分类</text><text class="hint">›</text></view><view class="setting-row"><text class="label">当前模型</text><text class="model">{{model}}</text></view><view class="setting-row" @click="uni.showModal({title:'关于你的记忆',content:'只保存你明确提供的信息。可以随时查看、修改和删除；分类不确定的内容会先保留，等后续对话澄清。',showCancel:false})"><text class="label">我的记忆如何保存</text><text class="hint">›</text></view></view><!-- #ifdef APP-HARMONY --><view class="card setting-row" @click="checkUpdate(true)"><text class="label">检查更新</text><text class="hint">›</text></view><!-- #endif --><text class="version">随心记 · 0.2.4</text></view></scroll-view></view></template>
+<style>
+.list { flex:1; }
+.identity { align-items:center; padding:24px 0 36px; }
+.avatar { width:72px; height:72px; border-radius:28px; background-color:#E4ECDD; align-items:center; justify-content:center; }
+.avatar-text { color:#285E4A; font-size:30px; }
+.identity-title { font-size:21px; font-weight:600; color:#293C33; margin:18px 0 10px; }
+.stat { align-items:center; flex:1; }
+.stat-number { font-size:28px; color:#285E4A; font-weight:600; margin-bottom:6px; }
+.setting-row { flex-direction:row; align-items:center; justify-content:space-between; min-height:56px; }
+.model { color:#8B9690; font-size:11px; max-width:170px; }
+.version { text-align:center; color:#A0AAA3; font-size:12px; margin-top:28px; }
+</style>
