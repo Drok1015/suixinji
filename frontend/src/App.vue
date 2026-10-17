@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const brandUrl = import.meta.env.BASE_URL + 'brand.png'
+import brandUrl from './assets/brand.png'
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
