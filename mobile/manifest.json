@@ -2,8 +2,8 @@
     "name": "随心记",
     "appid": "__UNI__YOUR_APP_ID",
     "description": "通过聊天记录生活，自动整理，在需要时找回。",
-    "versionName": "0.2.4",
-    "versionCode": 204,
+    "versionName": "0.2.5",
+    "versionCode": 205,
     "uni-app-x": {},
     "app-android": {
         "distribute": {

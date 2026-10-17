@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const brandUrl = import.meta.env.BASE_URL + 'brand.png'
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
@@ -167,12 +168,12 @@ onUnmounted(()=>{if(timer)clearInterval(timer)})
 </script>
 
 <template>
-  <div v-if="checking" class="loading-screen"><div class="brand-symbol">记</div><p>正在打开你的空间…</p></div>
+  <div v-if="checking" class="loading-screen"><img class="brand-symbol brand-image" :src="brandUrl" alt="随心记"/><p>正在打开你的空间…</p></div>
   <div v-else-if="!authenticated" class="login-screen"><div class="login-card"><h1>暂时无法连接</h1><p>{{error || '请检查网络后重试'}}</p><button class="primary" @click="init().catch(report)">重新连接</button></div></div>
   <div v-else class="shell">
     <div v-if="sidebar" class="backdrop" @click="sidebar=false"></div>
     <aside class="sidebar" :class="{open:sidebar}">
-      <a class="brand" href="#" @click.prevent="newChat"><span class="brand-symbol">记</span><span>随心记<small>随心聊，轻松记。</small></span></a>
+      <a class="brand" href="#" @click.prevent="newChat"><img class="brand-symbol brand-image" :src="brandUrl" alt=""/><span>随心记<small>随心聊，轻松记。</small></span></a>
       <button class="new-chat" :disabled="busy" @click="newChat"><span>＋</span> 新的对话 <span class="arrow">↗</span></button>
       <nav class="nav"><button :class="{selected:page==='chat'}" @click="page='chat';sidebar=false"><span>◉</span> 聊天</button><button :class="{selected:page==='memory'}" @click="showMemory"><span>▤</span> 我的记忆 <span class="count">{{memoryData.memories.length}}</span></button></nav>
       <div class="history-label">最近对话 <span>{{conversations.length}}</span></div>
@@ -185,7 +186,7 @@ onUnmounted(()=>{if(timer)clearInterval(timer)})
       <template v-if="page==='chat'">
         <div class="chat-header" v-if="messages.length"><h2>{{title}}</h2><span>让想法接着生长</span></div>
         <div class="chat-scroll" ref="scroller">
-          <section v-if="!messages.length" class="welcome"><span class="welcome-icon">✳</span><span class="eyebrow">随心记 · 随心聊，轻松记。</span><h1>今天，想聊些什么？</h1><p>通过聊天记录生活，自动整理，<br>在需要时找回。</p>
+          <section v-if="!messages.length" class="welcome"><img class="welcome-icon welcome-brand" :src="brandUrl" alt="随心记 Logo"/><span class="eyebrow">随心记 · 随心聊，轻松记。</span><h1>今天，想聊些什么？</h1><p>通过聊天记录生活，自动整理，<br>在需要时找回。</p>
             <div class="suggestions"><button @click="draft='我想梳理一下最近的目标，帮我一起想想。';input?.focus()"><span>↗</span><strong>梳理我的目标</strong><small>把想做的事理清楚</small></button><button @click="draft='我更喜欢简洁的中文回复，请记住这个偏好。';input?.focus()"><span>♡</span><strong>让你更了解我</strong><small>告诉我你的习惯与偏好</small></button><button @click="draft='你现在记得哪些关于我的事情？';input?.focus()"><span>▤</span><strong>看看我的记忆</strong><small>回顾我们积累的点滴</small></button></div>
             <div class="welcome-note"><span class="status-dot"></span>通用记忆 + 话题记忆，为每次对话补上背景</div>
           </section>
