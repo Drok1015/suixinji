@@ -1,26 +1,22 @@
 # 随心记
 
-<img src="mobile/static/brand/app-icon.png" width="96" height="96" alt="随心记 Logo">
+![随心记 Logo](mobile/static/brand/app-icon.png)
 
 **随心聊，轻松记。**
 
 **通过聊天记录生活，自动整理，在需要时找回。**
 
+**根据聊天内容用jev快速匹配对应的记忆模块进行回答和完善记忆分类模块**
+
 ![随心记：聊天与记忆召回](docs/images/chat-preview.png)
 
 ![随心记：记忆管理与话题分类](docs/images/memory-preview.png)
 
-<p align="center">
-  <img src="docs/images/mobile-welcome.jpg" width="42%" alt="随心记移动端：聊天欢迎页">
-  &emsp;&emsp;
-  <img src="docs/images/mobile-chat.jpg" width="42%" alt="随心记移动端：聊天与记忆记录">
-</p>
+![随心记移动端：聊天欢迎页](docs/images/mobile-welcome.jpg)    ![随心记移动端：聊天与记忆记录](docs/images/mobile-chat.jpg)
 
 随心记是一个以聊天为入口的个人生活记录工具。随口说下的计划、喜欢的口味、试过的菜谱，或一件想留住的小事，都可以从对话中慢慢积累成记忆。你可以继续聊，也可以在需要时问一句，找回曾经记录的内容。
 
 当前版本：**0.2.5** · [更新记录](CHANGELOG.md)
-
-
 
 ## 产品特点
 
@@ -58,6 +54,8 @@ Web 适配桌面和手机屏幕；手机端使用 uni-app x，当前维护鸿蒙
 | 日常计划 | “周六准备去图书馆，顺便还书。” | “我之前说周六准备做什么？” |
 | 菜谱笔记 | “这次炖豆角先炒肉，再加水焖，最后放土豆。” | “之前记的豆角做法是什么？” |
 | 学习进展 | “Vue 的基础部分看完了，接下来学状态管理。” | “我上次学到哪儿了？” |
+
+# ------------以下内容是agent阅读-----------------
 
 ## 工作方式
 
