@@ -10,6 +10,11 @@
 
 ![随心记：记忆管理与话题分类](docs/images/memory-preview.png)
 
+<p align="center">
+  <img src="docs/images/mobile-welcome.jpg" width="45%" alt="随心记移动端：聊天欢迎页">
+  <img src="docs/images/mobile-chat.jpg" width="45%" alt="随心记移动端：聊天与记忆记录">
+</p>
+
 随心记是一个以聊天为入口的个人生活记录工具。随口说下的计划、喜欢的口味、试过的菜谱，或一件想留住的小事，都可以从对话中慢慢积累成记忆。你可以继续聊，也可以在需要时问一句，找回曾经记录的内容。
 
 当前版本：**0.2.5** · [更新记录](CHANGELOG.md)
